@@ -17,8 +17,14 @@ function App() {
   const [temp, setTemp] = useState(0)
   const [wind_degrees, setWind_degrees] = useState(0)
   const [wind_speed, setWind_speed] = useState(0)
+  const [units, setUnits] = useState('C')
 
   async function getData() {
+    if (!isValidCity(city)) {
+      console.error('City is not valid');
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const url = `https://api.api-ninjas.com/v1/geocoding?city=${city}&country=${country}`;
     try {
@@ -35,6 +41,10 @@ function App() {
 
       const json = await response.json();
       console.log(json);
+
+      if (json.length === 0) {
+        throw new Error('No data found');
+      }
 
       const weatherUrl = `https://api.api-ninjas.com/v1/weather?lat=${json[0]?.latitude}&lon=${json[0]?.longitude}`;
       const weatherResponse = await fetch(weatherUrl, {
@@ -66,6 +76,17 @@ function App() {
     }
   }
 
+  const isValidCity = (city) => {
+    return city.trim().length > 0;
+  }
+
+  const convertToFahrenheit = (celsius) => {
+    if (units === 'C') {
+      return celsius;
+    }
+    return (celsius * 9/5) + 32;
+  }
+
   const handleUpdateCity = (event) => {
     setCity(event.target.value);
   }
@@ -88,13 +109,13 @@ function App() {
       <div className="card">
         <div>
           <p>Cloud Coverage: {cloud_pct ? cloud_pct : null}%</p>
-          <p>Feels Like: {feels_like ? feels_like : null}°C</p>
+          <p>Feels Like: {feels_like ? convertToFahrenheit(feels_like) : null}°{units === 'C' ? 'C' : 'F'}</p>
           <p>Humidity: {humidity ? humidity : null}%</p>
-          <p>High: {max_temp ? max_temp : null}°C</p>
-          <p>Low: {min_temp ? min_temp : null}°C</p>
+          <p>High: {max_temp ? convertToFahrenheit(max_temp) : null}°{units === 'C' ? 'C' : 'F'}</p>
+          <p>Low: {min_temp ? convertToFahrenheit(min_temp) : null}°{units === 'C' ? 'C' : 'F'}</p>
           <p>Sunrise: {sunrise ? new Date(sunrise * 1000).toLocaleTimeString() : null}</p>
           <p>Sunset: {sunset ? new Date(sunset * 1000).toLocaleTimeString() : null}</p>
-          <p>Temperature: {temp ? temp : null}°C</p>
+          <p>Temperature: {temp ? convertToFahrenheit(temp) : null}°{units === 'C' ? 'C' : 'F'}</p>
           <p>Wind Degrees: {wind_degrees ? wind_degrees : null}°</p>
           <p>Wind Speed: {wind_speed ? wind_speed : null} km/h</p>
           <p>Enter your city and country to find the weather data</p>
@@ -107,6 +128,7 @@ function App() {
         </div>
         <div>
           {isLoading ? <img src={reactLogo} className="logo react spin" alt="React logo" /> : <button className="m-vertical--30" onClick={getData}>Get Data</button>}
+          <button className="m-vertical--30" onClick={() => setUnits(units === 'C' ? 'F' : 'C')}>{units === 'C' ? 'C' : 'F'}</button>
         </div>
         <p>
           Edit <code>src/App.jsx</code> and save to test HMR
